@@ -57,11 +57,10 @@ export default function Map({ restaurants, selectedRestaurant, onSelectRestauran
         zoomControl={false} // Hide default zoom buttons to apply floating UI
         ref={mapRef}
       >
-        {/* CartoDB Positron Light tile server at @2x high-resolution with Retina detection */}
+        {/* Google Maps Korean Roadmap tile server at @2x scale */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png"
-          detectRetina={true}
+          attribution='&copy; <a href="https://www.google.com/help/legalnotices_maps.html">Google Maps</a>'
+          url="https://mt0.google.com/vt/lyrs=m&hl=ko&x={x}&y={y}&z={z}&scale=2"
         />
 
         {/* Dynamic camera panning when a restaurant card or user location is focused */}
