@@ -9,7 +9,7 @@ let redirectClicks = {
   '5': 29,  // 설빙
   '6': 94,  // 버거킹
   '7': 11,  // 대포 (비)
-  '8': 18,  // 피자헛
+  '8': 18,  // 도미노피자
   '9': 57,  // KFC
   '10': 39, // 맘스터치
   '11': 142,// 꼬숑돈까스
@@ -44,8 +44,8 @@ export async function GET(request) {
       remainingTime: deal1TimeText,
       tags: ['#단체뒤풀이', '#생맥주1900원', '#더본코리아행사'],
       situation: '🍻단체 뒤풀이',
-      latitude: 37.55787,
-      longitude: 126.93512,
+      latitude: 37.55745,
+      longitude: 126.93609,
       rating: 4.5,
       downloads: redirectClicks['1'] || 0,
       redirectUrl: 'https://www.theborn.co.kr/theborn_brand/%eb%a6%ac%ec%bd%98%ec%8a%9c%ec%9e%a5/'
@@ -59,8 +59,8 @@ export async function GET(request) {
       remainingTime: '상시 운영',
       tags: ['#혼밥', '#가성비최강', '#썹프라이즈'],
       situation: '🎧혼밥/가성비',
-      latitude: 37.55688,
-      longitude: 126.93663,
+      latitude: 37.55830,
+      longitude: 126.93660,
       rating: 4.4,
       downloads: redirectClicks['2'] || 0,
       redirectUrl: 'https://www.subway.co.kr/eventList'
@@ -73,8 +73,8 @@ export async function GET(request) {
       originalPrice: '수제맥주 8,000원 ➔ 예약 시 10% 추가할인',
       tags: ['#조용한데이트', '#분위기맥주집', '#네이버예약혜택'],
       situation: '👩❤️👨조용한 데이트',
-      latitude: 37.55621,
-      longitude: 126.93489,
+      latitude: 37.55740,
+      longitude: 126.93880,
       rating: 4.8,
       remainingTime: '상시 운영',
       downloads: redirectClicks['3'] || 0,
@@ -89,8 +89,8 @@ export async function GET(request) {
       remainingTime: '상시 운영',
       tags: ['#단체뒤풀이', '#치맥회식', '#앱쿠폰할인'],
       situation: '🍻단체 뒤풀이',
-      latitude: 37.55831,
-      longitude: 126.93582,
+      latitude: 37.55836,
+      longitude: 126.93708,
       rating: 4.6,
       downloads: redirectClicks['4'] || 0,
       redirectUrl: 'http://www.kyochon.com'
@@ -104,41 +104,41 @@ export async function GET(request) {
       remainingTime: '상시 운영',
       tags: ['#조용한데이트', '#여름디저트', '#멜론빙수'],
       situation: '👩❤️👨조용한 데이트',
-      latitude: 37.55656,
-      longitude: 126.93628,
+      latitude: 37.55730,
+      longitude: 126.93660,
       rating: 4.7,
       downloads: redirectClicks['5'] || 0,
       redirectUrl: 'https://sulbing.com'
     },
     {
       id: '6',
-      name: '버거킹 신촌점',
+      name: '버거킹 연세로점',
       type: 'regular', 
       discount: '버거킹 공식 앱 쿠폰 제시 시 시그니처 와퍼 세트 최대 35% 할인',
       originalPrice: '치즈와퍼세트 9,700원 ➔ 앱 쿠폰가 6,700원',
       remainingTime: '오늘 마감',
       tags: ['#혼밥', '#버거킹앱할인', '#가성비버거'],
       situation: '🎧혼밥/가성비',
-      latitude: 37.55573,
-      longitude: 126.93722,
+      latitude: 37.55745,
+      longitude: 126.93665,
       rating: 4.3,
       downloads: redirectClicks['6'] || 0,
       redirectUrl: 'https://www.burgerking.co.kr/#/event'
     },
     {
       id: '8',
-      name: '피자헛 신촌점',
+      name: '도미노피자 신촌점',
       type: 'regular',
-      discount: '포장 주문 시 프리미엄 피자 40% 상시 할인 특별전',
-      originalPrice: '슈퍼슈프림 L 29,900원 ➔ 방문포장 17,940원',
+      discount: '방문 포장 주문 시 전 메뉴 30% 상시 할인 프로모션',
+      originalPrice: '클래식 포테이토 L 27,900원 ➔ 방문포장가 19,530원',
       remainingTime: '상시 운영',
-      tags: ['#혼밥/가성비', '#방문포장할인', '#피자특가'],
+      tags: ['#방문포장30%', '#도미노피자할인', '#피자특가'],
       situation: '🎧혼밥/가성비',
-      latitude: 37.55584,
-      longitude: 126.93679,
-      rating: 4.2,
+      latitude: 37.55620,
+      longitude: 126.93790,
+      rating: 4.3,
       downloads: redirectClicks['8'] || 0,
-      redirectUrl: 'https://www.pizzahut.co.kr/main'
+      redirectUrl: 'https://web.dominos.co.kr/main'
     },
     {
       id: '9',
@@ -149,8 +149,8 @@ export async function GET(request) {
       remainingTime: '오늘 마감',
       tags: ['#혼밥', '#KFC쿠폰', '#가성비치킨'],
       situation: '🎧혼밥/가성비',
-      latitude: 37.55609,
-      longitude: 126.93699,
+      latitude: 37.55600,
+      longitude: 126.93520,
       rating: 4.1,
       downloads: redirectClicks['9'] || 0,
       redirectUrl: 'https://www.kfckorea.com/'
@@ -164,8 +164,8 @@ export async function GET(request) {
       remainingTime: '상시 운영',
       tags: ['#혼밥', '#스마트오더', '#싸이버거'],
       situation: '🎧혼밥/가성비',
-      latitude: 37.55729,
-      longitude: 126.93617,
+      latitude: 37.55760,
+      longitude: 126.93850,
       rating: 4.4,
       downloads: redirectClicks['10'] || 0,
       redirectUrl: 'https://www.momstouch.co.kr/'
@@ -181,8 +181,8 @@ export async function GET(request) {
       remainingTime: '상시 운영',
       tags: ['#가성비맛집', '#돈까스4000원', '#레전드밥집'],
       situation: '💸가성비(만원이하)',
-      latitude: 37.55852,
-      longitude: 126.93614,
+      latitude: 37.55836,
+      longitude: 126.93665,
       rating: 4.5,
       downloads: redirectClicks['11'] || 0,
       redirectUrl: 'https://map.naver.com/v5/entry/place/37286161'
@@ -196,8 +196,8 @@ export async function GET(request) {
       remainingTime: '상시 운영',
       tags: ['#생면파스타', '#데이트맛집', '#이탈리안가성비'],
       situation: '💸가성비(만원이하)',
-      latitude: 37.55809,
-      longitude: 126.93718,
+      latitude: 37.55760,
+      longitude: 126.93720,
       rating: 4.6,
       downloads: redirectClicks['12'] || 0,
       redirectUrl: 'https://map.naver.com/v5/entry/place/1529124483'
@@ -211,8 +211,8 @@ export async function GET(request) {
       remainingTime: '상시 운영',
       tags: ['#김치찜5000원', '#집밥한식', '#꼬숑돈까스옆집'],
       situation: '💸가성비(만원이하)',
-      latitude: 37.55847,
-      longitude: 126.93609,
+      latitude: 37.55845,
+      longitude: 126.93660,
       rating: 4.4,
       downloads: redirectClicks['13'] || 0,
       redirectUrl: 'https://map.naver.com/v5/entry/place/1880356598'
@@ -226,8 +226,8 @@ export async function GET(request) {
       remainingTime: '상시 운영',
       tags: ['#수제비5000원', '#신촌노포', '#현지인추천'],
       situation: '💸가성비(만원이하)',
-      latitude: 37.55593,
-      longitude: 126.93598,
+      latitude: 37.55600,
+      longitude: 126.93600,
       rating: 4.6,
       downloads: redirectClicks['14'] || 0,
       redirectUrl: 'https://map.naver.com/v5/entry/place/11679093'
@@ -245,8 +245,8 @@ export async function GET(request) {
       remainingTime: deal7TimeText,
       tags: ['#비오는날', '#민속주점막걸리', '#게릴라파전할인'],
       situation: '☔비오는 날',
-      latitude: 37.55605,
-      longitude: 126.93553,
+      latitude: 37.55620,
+      longitude: 126.93510,
       rating: 4.7,
       downloads: redirectClicks['7'] || 0,
       redirectUrl: 'https://map.naver.com/v5/entry/place/13572856'
