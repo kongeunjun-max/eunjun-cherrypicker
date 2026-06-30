@@ -57,10 +57,11 @@ export default function Map({ restaurants, selectedRestaurant, onSelectRestauran
         zoomControl={false} // Hide default zoom buttons to apply floating UI
         ref={mapRef}
       >
-        {/* CartoDB Positron Light tile server matches the bright light theme */}
+        {/* CartoDB Positron Light tile server at @2x high-resolution with Retina detection */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png"
+          detectRetina={true}
         />
 
         {/* Dynamic camera panning when a restaurant card or user location is focused */}
