@@ -1,105 +1,126 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
-import L from 'leaflet';
-
-// Dynamic map view controller to handle camera movements programmatically
-function MapController({ center }) {
-  const map = useMap();
-  useEffect(() => {
-    if (center && center[0] && center[1]) {
-      map.setView(center, map.getZoom(), { animate: true });
-    }
-  }, [center, map]);
-  return null;
-}
 
 export default function Map({ restaurants, selectedRestaurant, onSelectRestaurant, userLocation }) {
-  const mapRef = useRef(null);
+  const mapContainerRef = useRef(null);
+  const naverMapRef = useRef(null);
+  const markersRef = useRef([]);
+  const userMarkerRef = useRef(null);
 
-  // Initialize Custom Leaflet divIcons to inject our CSS-animated marker templates.
-  const pulseIcon = typeof window !== 'undefined' ? L.divIcon({
-    className: 'custom-pulse-marker',
-    html: `<div class="pulse-marker-container"><div class="pulse-ring"></div><div class="pulse-core"></div></div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  }) : null;
+  // Initialize the NAVER Map instance on mount
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.naver || !window.naver.maps) return;
 
-  const regularIcon = typeof window !== 'undefined' ? L.divIcon({
-    className: 'custom-regular-marker',
-    html: `<div class="regular-marker-container"><div class="regular-core"></div></div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  }) : null;
+    // Set initial center coordinates (Shinchon station 3rd exit default)
+    const initialCenter = userLocation
+      ? new window.naver.maps.LatLng(userLocation[0], userLocation[1])
+      : new window.naver.maps.LatLng(37.55745, 126.93609);
 
-  const budgetIcon = typeof window !== 'undefined' ? L.divIcon({
-    className: 'custom-budget-marker',
-    html: `<div class="budget-marker-container"><div class="budget-core"></div></div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  }) : null;
+    const mapOptions = {
+      center: initialCenter,
+      zoom: 16,
+      zoomControl: false, // Hide native zoom buttons to preserve Antigravity custom layout
+      mapTypeControl: false,
+      scaleControl: false,
+      logoControlOptions: {
+        position: window.naver.maps.Position.BOTTOM_LEFT
+      }
+    };
 
-  const userIcon = typeof window !== 'undefined' ? L.divIcon({
-    className: 'custom-user-marker',
-    html: `<div class="user-location-marker"><div class="user-location-core"></div></div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  }) : null;
+    const map = new window.naver.maps.Map(mapContainerRef.current, mapOptions);
+    naverMapRef.current = map;
+
+    return () => {
+      // Clean up map listeners on unmount
+      if (naverMapRef.current) {
+        naverMapRef.current.destroy();
+      }
+    };
+  }, []);
+
+  // Sync user location marker
+  useEffect(() => {
+    if (!naverMapRef.current || typeof window === 'undefined' || !window.naver || !window.naver.maps) return;
+
+    if (userLocation && userLocation[0] && userLocation[1]) {
+      const latlng = new window.naver.maps.LatLng(userLocation[0], userLocation[1]);
+
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setPosition(latlng);
+      } else {
+        userMarkerRef.current = new window.naver.maps.Marker({
+          position: latlng,
+          map: naverMapRef.current,
+          icon: {
+            content: `<div class="user-location-marker"><div class="user-location-core"></div></div>`,
+            size: new window.naver.maps.Size(32, 32),
+            anchor: new window.naver.maps.Point(16, 16)
+          }
+        });
+      }
+    }
+  }, [userLocation]);
+
+  // Handle dynamic map camera panning (PanTo)
+  useEffect(() => {
+    if (!naverMapRef.current || typeof window === 'undefined' || !window.naver || !window.naver.maps) return;
+
+    if (selectedRestaurant) {
+      const latlng = new window.naver.maps.LatLng(selectedRestaurant.latitude, selectedRestaurant.longitude);
+      naverMapRef.current.panTo(latlng, { duration: 300, easing: 'easeOutCubic' });
+    } else if (userLocation && userLocation[0] && userLocation[1]) {
+      // Fallback panning to user location if focused card is closed
+      const latlng = new window.naver.maps.LatLng(userLocation[0], userLocation[1]);
+      naverMapRef.current.panTo(latlng, { duration: 300, easing: 'easeOutCubic' });
+    }
+  }, [selectedRestaurant, userLocation]);
+
+  // Sync restaurant markers dynamically on dataset updates/filtering
+  useEffect(() => {
+    if (!naverMapRef.current || typeof window === 'undefined' || !window.naver || !window.naver.maps) return;
+
+    // Clear previous markers
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
+
+    // Draw new markers
+    restaurants.forEach((restaurant) => {
+      let contentHtml = '';
+
+      // Set custom markup matching globals.css animations
+      if (restaurant.type === 'time-sale') {
+        contentHtml = `<div class="pulse-marker-container"><div class="pulse-ring"></div><div class="pulse-core"></div></div>`;
+      } else if (restaurant.type === 'budget') {
+        contentHtml = `<div class="budget-marker-container"><div class="budget-core"></div></div>`;
+      } else {
+        contentHtml = `<div class="regular-marker-container"><div class="regular-core"></div></div>`;
+      }
+
+      const marker = new window.naver.maps.Marker({
+        position: new window.naver.maps.LatLng(restaurant.latitude, restaurant.longitude),
+        map: naverMapRef.current,
+        icon: {
+          content: contentHtml,
+          size: new window.naver.maps.Size(32, 32),
+          anchor: new window.naver.maps.Point(16, 16)
+        }
+      });
+
+      // Bind click handler
+      window.naver.maps.Event.addListener(marker, 'click', () => {
+        onSelectRestaurant(restaurant);
+      });
+
+      markersRef.current.push(marker);
+    });
+  }, [restaurants]);
 
   return (
-    <div className="w-full h-full relative" style={{ minHeight: '100vh' }}>
-      <MapContainer
-        center={[37.5568, 126.9368]}
-        zoom={16}
-        scrollWheelZoom={true}
-        style={{ width: '100%', height: '100vh' }}
-        zoomControl={false} // Hide default zoom buttons to apply floating UI
-        ref={mapRef}
-      >
-        {/* Google Maps Korean Roadmap tile server at @2x scale */}
-        <TileLayer
-          attribution='&copy; <a href="https://www.google.com/help/legalnotices_maps.html">Google Maps</a>'
-          url="https://mt0.google.com/vt/lyrs=m&hl=ko&x={x}&y={y}&z={z}&scale=2"
-        />
-
-        {/* Dynamic camera panning when a restaurant card or user location is focused */}
-        {selectedRestaurant ? (
-          <MapController center={[selectedRestaurant.latitude, selectedRestaurant.longitude]} />
-        ) : (
-          userLocation && <MapController center={userLocation} />
-        )}
-
-        {/* User GPS location marker */}
-        {userLocation && (
-          <Marker
-            position={userLocation}
-            icon={userIcon}
-          />
-        )}
-
-        {restaurants.map((restaurant) => {
-          let currentIcon = regularIcon;
-          if (restaurant.type === 'time-sale') {
-            currentIcon = pulseIcon;
-          } else if (restaurant.type === 'budget') {
-            currentIcon = budgetIcon;
-          }
-
-          return (
-            <Marker
-              key={restaurant.id}
-              position={[restaurant.latitude, restaurant.longitude]}
-              icon={currentIcon}
-              eventHandlers={{
-                click: () => {
-                  onSelectRestaurant(restaurant);
-                },
-              }}
-            />
-          );
-        })}
-      </MapContainer>
-    </div>
+    <div 
+      ref={mapContainerRef} 
+      className="w-full h-screen relative bg-[#f4f5f6]"
+      style={{ width: '100%', height: '100vh' }}
+    />
   );
 }

@@ -1,18 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
-
-// Dynamically load the Leaflet Map component with SSR disabled
-const Map = dynamic(() => import('./components/Map'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-screen bg-[#f4f5f6] flex flex-col items-center justify-center text-[#12141a] gap-4">
-      <div className="w-12 h-12 border-4 border-t-[#12141a] border-r-black/10 border-b-black/10 border-l-black/10 rounded-full animate-spin"></div>
-      <p className="text-[#5c6370] text-sm font-semibold tracking-wider animate-pulse">신촌 특가 레이더를 가동하는 중...</p>
-    </div>
-  ),
-});
+import Script from 'next/script';
+import Map from './components/Map';
 
 const FILTERS = ["🔥전체", "🍻단체 뒤풀이", "👩❤️👨조용한 데이트", "🎧혼밥/가성비", "☔비오는 날", "💸가성비(만원이하)"];
 
@@ -30,6 +20,16 @@ export default function Page() {
   // Redirection loading and toast states
   const [toastVisible, setToastVisible] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+
+  // Naver Maps Script loaded state
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Sync script load state if naver is already in window
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.naver && window.naver.maps) {
+      setMapLoaded(true);
+    }
+  }, []);
 
   // Request HTML5 Geolocation access on mount
   useEffect(() => {
@@ -171,18 +171,35 @@ export default function Page() {
     }
   };
 
+  // Get Client ID securely from env variables
+  const naverClientId = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID || 'YOUR_CLIENT_ID';
+
   return (
     <main className="w-full h-screen relative bg-[#f4f5f6] select-none">
       
-      {/* Light Positron Leaflet Map Layer */}
-      <Map 
-        restaurants={filteredRestaurants} 
-        selectedRestaurant={selectedRestaurant}
-        onSelectRestaurant={setSelectedRestaurant}
-        userLocation={userLocation}
+      {/* Load NAVER Map Script dynamically */}
+      <Script 
+        src={`https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${naverClientId}`}
+        strategy="beforeInteractive"
+        onLoad={() => setMapLoaded(true)}
       />
 
-      {/* Floating Header & Filters (contrasting on light map) */}
+      {/* Render map only when NAVER SDK is ready in DOM */}
+      {mapLoaded ? (
+        <Map 
+          restaurants={filteredRestaurants} 
+          selectedRestaurant={selectedRestaurant}
+          onSelectRestaurant={setSelectedRestaurant}
+          userLocation={userLocation}
+        />
+      ) : (
+        <div className="w-full h-screen bg-[#f4f5f6] flex flex-col items-center justify-center text-[#12141a] gap-4">
+          <div className="w-12 h-12 border-4 border-t-[#12141a] border-r-black/10 border-b-black/10 border-l-black/10 rounded-full animate-spin"></div>
+          <p className="text-[#5c6370] text-sm font-semibold tracking-wider animate-pulse">네이버 지도 엔진을 가동하는 중...</p>
+        </div>
+      )}
+
+      {/* Floating Header & Filters */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4 flex flex-col gap-3.5 pointer-events-none">
         
         {/* Header & Weather Toggle / User GPS Controls */}
