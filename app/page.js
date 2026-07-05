@@ -24,10 +24,16 @@ export default function Page() {
   // Naver Maps Script loaded state
   const [mapLoaded, setMapLoaded] = useState(false);
 
-  // Sync script load state if naver is already in window
+  // Detect exact browser origin for Naver domain debugging
+  const [currentOrigin, setCurrentOrigin] = useState('');
+
+  // Sync script load state and extract origin
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.naver && window.naver.maps) {
-      setMapLoaded(true);
+    if (typeof window !== 'undefined') {
+      setCurrentOrigin(window.location.origin);
+      if (window.naver && window.naver.maps) {
+        setMapLoaded(true);
+      }
     }
   }, []);
 
@@ -209,6 +215,11 @@ export default function Page() {
               DealRadar <span className="text-xl animate-pulse">📡</span>
             </h1>
             <p className="text-xs text-[#5c6370] font-bold mt-0.5 tracking-wider">신촌 실시간 특가 & 가성비 레이더</p>
+            {currentOrigin && (
+              <div className="mt-1 bg-red-500/10 border border-red-500/20 rounded-md px-2 py-0.5 text-[9px] text-red-600 font-bold max-w-max pointer-events-auto select-text" title="네이버 콘솔에 등록해야 하는 실제 주소">
+                네이버 주소 등록 확인: {currentOrigin}
+              </div>
+            )}
           </div>
 
           {/* Floating Control Box (Weather Switch + My Location Button) */}
