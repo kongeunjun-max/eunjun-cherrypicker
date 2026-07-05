@@ -21,19 +21,15 @@ export default function Page() {
   const [toastVisible, setToastVisible] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Naver Maps Script loaded state
+  // Kakao Maps Script loaded state
   const [mapLoaded, setMapLoaded] = useState(false);
 
-  // Detect exact browser origin for Naver domain debugging
-  const [currentOrigin, setCurrentOrigin] = useState('');
-
-  // Sync script load state and extract origin
+  // Sync script load state if Kakao is already in window
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCurrentOrigin(window.location.origin);
-      if (window.naver && window.naver.maps) {
+    if (typeof window !== 'undefined' && window.kakao && window.kakao.maps) {
+      window.kakao.maps.load(() => {
         setMapLoaded(true);
-      }
+      });
     }
   }, []);
 
@@ -177,20 +173,26 @@ export default function Page() {
     }
   };
 
-  // Get Client ID securely from env variables
-  const naverClientId = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID || 'YOUR_CLIENT_ID';
+  // Get Kakao App Key securely from env variables
+  const kakaoAppKey = process.env.NEXT_PUBLIC_KAKAO_APP_KEY || 'YOUR_KAKAO_APP_KEY';
 
   return (
     <main className="w-full h-screen relative bg-[#f4f5f6] select-none">
       
-      {/* Load NAVER Map Script dynamically */}
+      {/* Load Kakao Map Script dynamically with autoload=false */}
       <Script 
-        src={`https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${naverClientId}`}
+        src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoAppKey}&autoload=false`}
         strategy="beforeInteractive"
-        onLoad={() => setMapLoaded(true)}
+        onLoad={() => {
+          if (window.kakao && window.kakao.maps) {
+            window.kakao.maps.load(() => {
+              setMapLoaded(true);
+            });
+          }
+        }}
       />
 
-      {/* Render map only when NAVER SDK is ready in DOM */}
+      {/* Render map only when Kakao SDK is ready in DOM */}
       {mapLoaded ? (
         <Map 
           restaurants={filteredRestaurants} 
@@ -201,7 +203,7 @@ export default function Page() {
       ) : (
         <div className="w-full h-screen bg-[#f4f5f6] flex flex-col items-center justify-center text-[#12141a] gap-4">
           <div className="w-12 h-12 border-4 border-t-[#12141a] border-r-black/10 border-b-black/10 border-l-black/10 rounded-full animate-spin"></div>
-          <p className="text-[#5c6370] text-sm font-semibold tracking-wider animate-pulse">네이버 지도 엔진을 가동하는 중...</p>
+          <p className="text-[#5c6370] text-sm font-semibold tracking-wider animate-pulse">지도를 불러오는 중...</p>
         </div>
       )}
 
@@ -215,11 +217,6 @@ export default function Page() {
               DealRadar <span className="text-xl animate-pulse">📡</span>
             </h1>
             <p className="text-xs text-[#5c6370] font-bold mt-0.5 tracking-wider">신촌 실시간 특가 & 가성비 레이더</p>
-            {currentOrigin && (
-              <div className="mt-1 bg-red-500/10 border border-red-500/20 rounded-md px-2 py-0.5 text-[9px] text-red-600 font-bold max-w-max pointer-events-auto select-text" title="네이버 콘솔에 등록해야 하는 실제 주소">
-                네이버 주소 등록 확인: {currentOrigin}
-              </div>
-            )}
           </div>
 
           {/* Floating Control Box (Weather Switch + My Location Button) */}

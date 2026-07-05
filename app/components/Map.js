@@ -4,115 +4,109 @@ import { useEffect, useRef } from 'react';
 
 export default function Map({ restaurants, selectedRestaurant, onSelectRestaurant, userLocation }) {
   const mapContainerRef = useRef(null);
-  const naverMapRef = useRef(null);
-  const markersRef = useRef([]);
-  const userMarkerRef = useRef(null);
+  const kakaoMapRef = useRef(null);
+  const overlaysRef = useRef([]);
+  const userOverlayRef = useRef(null);
 
-  // Initialize the NAVER Map instance on mount
+  // Initialize the Kakao Map instance on mount
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.naver || !window.naver.maps) return;
+    if (typeof window === 'undefined' || !window.kakao || !window.kakao.maps) return;
 
-    // Set initial center coordinates (Shinchon station 3rd exit default)
+    // Center coordinates: Shinchon station 3rd exit default
     const initialCenter = userLocation
-      ? new window.naver.maps.LatLng(userLocation[0], userLocation[1])
-      : new window.naver.maps.LatLng(37.55745, 126.93609);
+      ? new window.kakao.maps.LatLng(userLocation[0], userLocation[1])
+      : new window.kakao.maps.LatLng(37.55745, 126.93609);
 
     const mapOptions = {
       center: initialCenter,
-      zoom: 16,
-      zoomControl: false, // Hide native zoom buttons to preserve Antigravity custom layout
-      mapTypeControl: false,
-      scaleControl: false,
-      logoControlOptions: {
-        position: window.naver.maps.Position.BOTTOM_LEFT
-      }
+      level: 3 // Kakao map zoom level (lower is zoomed-in, 3 is standard detailed alley grid view)
     };
 
-    const map = new window.naver.maps.Map(mapContainerRef.current, mapOptions);
-    naverMapRef.current = map;
+    const map = new window.kakao.maps.Map(mapContainerRef.current, mapOptions);
+    kakaoMapRef.current = map;
 
     return () => {
-      // Clean up map listeners on unmount
-      if (naverMapRef.current) {
-        naverMapRef.current.destroy();
-      }
+      // Clean up map reference on unmount
+      kakaoMapRef.current = null;
     };
   }, []);
 
-  // Sync user location marker
+  // Sync user location custom overlay
   useEffect(() => {
-    if (!naverMapRef.current || typeof window === 'undefined' || !window.naver || !window.naver.maps) return;
+    if (!kakaoMapRef.current || typeof window === 'undefined' || !window.kakao || !window.kakao.maps) return;
 
     if (userLocation && userLocation[0] && userLocation[1]) {
-      const latlng = new window.naver.maps.LatLng(userLocation[0], userLocation[1]);
+      const latlng = new window.kakao.maps.LatLng(userLocation[0], userLocation[1]);
 
-      if (userMarkerRef.current) {
-        userMarkerRef.current.setPosition(latlng);
+      if (userOverlayRef.current) {
+        userOverlayRef.current.setPosition(latlng);
       } else {
-        userMarkerRef.current = new window.naver.maps.Marker({
+        // Create custom HTML element matching globals.css rose-red bouncing style
+        const el = document.createElement('div');
+        el.className = 'user-location-marker';
+        el.innerHTML = '<div class="user-location-core"></div>';
+
+        userOverlayRef.current = new window.kakao.maps.CustomOverlay({
           position: latlng,
-          map: naverMapRef.current,
-          icon: {
-            content: `<div class="user-location-marker"><div class="user-location-core"></div></div>`,
-            size: new window.naver.maps.Size(32, 32),
-            anchor: new window.naver.maps.Point(16, 16)
-          }
+          content: el,
+          map: kakaoMapRef.current,
+          yAnchor: 0.5
         });
       }
     }
   }, [userLocation]);
 
-  // Handle dynamic map camera panning (PanTo)
+  // Handle dynamic map camera panning (panTo)
   useEffect(() => {
-    if (!naverMapRef.current || typeof window === 'undefined' || !window.naver || !window.naver.maps) return;
+    if (!kakaoMapRef.current || typeof window === 'undefined' || !window.kakao || !window.kakao.maps) return;
 
     if (selectedRestaurant) {
-      const latlng = new window.naver.maps.LatLng(selectedRestaurant.latitude, selectedRestaurant.longitude);
-      naverMapRef.current.panTo(latlng, { duration: 300, easing: 'easeOutCubic' });
+      const latlng = new window.kakao.maps.LatLng(selectedRestaurant.latitude, selectedRestaurant.longitude);
+      kakaoMapRef.current.panTo(latlng);
     } else if (userLocation && userLocation[0] && userLocation[1]) {
       // Fallback panning to user location if focused card is closed
-      const latlng = new window.naver.maps.LatLng(userLocation[0], userLocation[1]);
-      naverMapRef.current.panTo(latlng, { duration: 300, easing: 'easeOutCubic' });
+      const latlng = new window.kakao.maps.LatLng(userLocation[0], userLocation[1]);
+      kakaoMapRef.current.panTo(latlng);
     }
   }, [selectedRestaurant, userLocation]);
 
-  // Sync restaurant markers dynamically on dataset updates/filtering
+  // Sync restaurant overlays dynamically on dataset updates/filtering
   useEffect(() => {
-    if (!naverMapRef.current || typeof window === 'undefined' || !window.naver || !window.naver.maps) return;
+    if (!kakaoMapRef.current || typeof window === 'undefined' || !window.kakao || !window.kakao.maps) return;
 
-    // Clear previous markers
-    markersRef.current.forEach((marker) => marker.setMap(null));
-    markersRef.current = [];
+    // Clear previous overlays from map
+    overlaysRef.current.forEach((overlay) => overlay.setMap(null));
+    overlaysRef.current = [];
 
-    // Draw new markers
+    // Draw new overlays
     restaurants.forEach((restaurant) => {
-      let contentHtml = '';
+      const el = document.createElement('div');
 
       // Set custom markup matching globals.css animations
       if (restaurant.type === 'time-sale') {
-        contentHtml = `<div class="pulse-marker-container"><div class="pulse-ring"></div><div class="pulse-core"></div></div>`;
+        el.className = 'pulse-marker-container';
+        el.innerHTML = '<div class="pulse-ring"></div><div class="pulse-core"></div>';
       } else if (restaurant.type === 'budget') {
-        contentHtml = `<div class="budget-marker-container"><div class="budget-core"></div></div>`;
+        el.className = 'budget-marker-container';
+        el.innerHTML = '<div class="budget-core"></div>';
       } else {
-        contentHtml = `<div class="regular-marker-container"><div class="regular-core"></div></div>`;
+        el.className = 'regular-marker-container';
+        el.innerHTML = '<div class="regular-core"></div>';
       }
 
-      const marker = new window.naver.maps.Marker({
-        position: new window.naver.maps.LatLng(restaurant.latitude, restaurant.longitude),
-        map: naverMapRef.current,
-        icon: {
-          content: contentHtml,
-          size: new window.naver.maps.Size(32, 32),
-          anchor: new window.naver.maps.Point(16, 16)
-        }
-      });
-
-      // Bind click handler
-      window.naver.maps.Event.addListener(marker, 'click', () => {
+      // Bind click handler dynamically to DOM element
+      el.onclick = () => {
         onSelectRestaurant(restaurant);
+      };
+
+      const overlay = new window.kakao.maps.CustomOverlay({
+        position: new window.kakao.maps.LatLng(restaurant.latitude, restaurant.longitude),
+        content: el,
+        map: kakaoMapRef.current,
+        yAnchor: 0.5
       });
 
-      markersRef.current.push(marker);
+      overlaysRef.current.push(overlay);
     });
   }, [restaurants]);
 
