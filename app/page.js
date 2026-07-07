@@ -174,7 +174,20 @@ export default function Page() {
   };
 
   // Get Kakao App Key securely from env variables
-  const kakaoAppKey = process.env.NEXT_PUBLIC_KAKAO_APP_KEY || 'YOUR_KAKAO_APP_KEY';
+  const kakaoAppKey = process.env.NEXT_PUBLIC_KAKAO_APP_KEY;
+  const isKeyConfigured = kakaoAppKey && kakaoAppKey !== 'YOUR_KAKAO_APP_KEY_HERE' && kakaoAppKey !== 'YOUR_KAKAO_APP_KEY';
+
+  if (!isKeyConfigured) {
+    return (
+      <div className="w-full h-screen bg-[#f4f5f6] flex flex-col items-center justify-center text-[#12141a] p-6 text-center gap-3">
+        <div className="text-3xl animate-bounce">🔑</div>
+        <h2 className="text-lg font-black text-[#ff4d4f]">카카오 지도 앱 키 설정 필요</h2>
+        <p className="text-xs text-[#5c6370] max-w-sm leading-relaxed">
+          Vercel 대시보드 또는 <code>.env.local</code> 파일에 <code>NEXT_PUBLIC_KAKAO_APP_KEY</code> 환경 변수가 성공적으로 등록되지 않았거나 플레이스홀더 상태입니다. 가이드를 참고하여 카카오 JavaScript 앱 키를 입력해 주세요.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <main className="w-full h-screen relative bg-[#f4f5f6] select-none">
