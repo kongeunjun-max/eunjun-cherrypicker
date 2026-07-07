@@ -23,13 +23,18 @@ export default function Page() {
 
   // Kakao Maps Script loaded state
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapLoadError, setMapLoadError] = useState(false);
+  const [originUrl, setOriginUrl] = useState('');
 
   // Sync script load state if Kakao is already in window
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.kakao && window.kakao.maps) {
-      window.kakao.maps.load(() => {
-        setMapLoaded(true);
-      });
+    if (typeof window !== 'undefined') {
+      setOriginUrl(window.location.origin);
+      if (window.kakao && window.kakao.maps) {
+        window.kakao.maps.load(() => {
+          setMapLoaded(true);
+        });
+      }
     }
   }, []);
 
@@ -176,6 +181,24 @@ export default function Page() {
   // Get Kakao App Key securely from env variables, with your live key as the default fallback
   const kakaoAppKey = process.env.NEXT_PUBLIC_KAKAO_APP_KEY || '3a6b39fc070eea44f186cd9fd7306476';
 
+  if (mapLoadError) {
+    return (
+      <div className="w-full h-screen bg-[#f4f5f6] flex flex-col items-center justify-center text-[#12141a] p-6 text-center gap-3">
+        <div className="text-3xl animate-bounce">❌</div>
+        <h2 className="text-lg font-black text-[#ff4d4f]">카카오 지도 호출 오류</h2>
+        <p className="text-xs text-[#5c6370] max-w-sm leading-relaxed font-semibold">
+          카카오 지도 서버(dapi.kakao.com)로부터 지도를 다운로드받는 데 실패했습니다.
+        </p>
+        <div className="bg-red-500/10 border border-red-500/20 px-5 py-4 rounded-3xl max-w-md mt-2 shadow-sm text-left">
+          <p className="text-xs font-black text-red-600">📍 현재 사이트 주소: {originUrl}</p>
+          <p className="text-[11px] text-red-500/90 mt-2 leading-relaxed">
+            카카오 디벨로퍼스 ➔ 내 애플리케이션 ➔ 플랫폼 ➔ <strong>Web 플랫폼 등록</strong> 항목에 위 주소가 글자 하나 틀리지 않고 똑같이 등록되어 있는지 확인해 주세요! (오타나 공백, 대소문자 확인 필요)
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="w-full h-screen relative bg-[#f4f5f6] select-none">
       
@@ -189,6 +212,10 @@ export default function Page() {
               setMapLoaded(true);
             });
           }
+        }}
+        onError={(e) => {
+          console.error("Kakao Maps script failed to load:", e);
+          setMapLoadError(true);
         }}
       />
 
