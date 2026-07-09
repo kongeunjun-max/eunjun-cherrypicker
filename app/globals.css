@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "leaflet/dist/leaflet.css";
 
 :root {
   --background: #f4f5f6;
@@ -145,36 +144,4 @@ body {
   100% {
     transform: translateY(-6px);
   }
-}
-
-/* Leaflet Overrides for Light Theme */
-.leaflet-container {
-  background-color: #f4f5f6 !important;
-  font-family: inherit !important;
-}
-
-/* Style default map controls to look premium and match light style */
-.leaflet-bar {
-  border: 1px solid var(--border-color) !important;
-  box-shadow: 0 8px 24px rgba(18, 20, 26, 0.1) !important;
-  border-radius: 12px !important;
-  overflow: hidden;
-}
-
-.leaflet-bar a {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  color: #12141a !important;
-  border-bottom: 1px solid var(--border-color) !important;
-  transition: all 0.2s ease;
-}
-
-.leaflet-bar a:hover {
-  background-color: #12141a !important;
-  color: #ffffff !important;
-}
-
-.leaflet-control-attribution {
-  background: rgba(255, 255, 255, 0.8) !important;
-  color: #5c6370 !important;
-  border-top-left-radius: 8px;
 }

@@ -1,6 +1,25 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+
+const SHINCHON_STATION_EXIT_3 = [37.55745, 126.93609];
+
+function createMarkerElement(restaurant) {
+  const el = document.createElement('div');
+
+  if (restaurant.type === 'time-sale') {
+    el.className = 'pulse-marker-container';
+    el.innerHTML = '<div class="pulse-ring"></div><div class="pulse-core"></div>';
+  } else if (restaurant.type === 'budget') {
+    el.className = 'budget-marker-container';
+    el.innerHTML = '<div class="budget-core"></div>';
+  } else {
+    el.className = 'regular-marker-container';
+    el.innerHTML = '<div class="regular-core"></div>';
+  }
+
+  return el;
+}
 
 export default function Map({ restaurants, selectedRestaurant, onSelectRestaurant, userLocation }) {
   const mapContainerRef = useRef(null);
@@ -8,111 +27,112 @@ export default function Map({ restaurants, selectedRestaurant, onSelectRestauran
   const overlaysRef = useRef([]);
   const userOverlayRef = useRef(null);
 
-  // Initialize the Kakao Map instance on mount
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.kakao || !window.kakao.maps) return;
+  // The map is built inside kakao.maps.load()'s callback, which may run a tick after
+  // mount. Every other effect reads kakaoMapRef, so it needs a render to re-run against
+  // once the map exists — otherwise props that settled first (geolocation, restaurants)
+  // are never drawn.
+  const [mapReady, setMapReady] = useState(false);
 
-    // Center coordinates: Shinchon station 3rd exit default
-    const initialCenter = userLocation
-      ? new window.kakao.maps.LatLng(userLocation[0], userLocation[1])
-      : new window.kakao.maps.LatLng(37.55745, 126.93609);
+  const syncOverlays = useCallback(() => {
+    const map = kakaoMapRef.current;
+    if (!map) return;
 
-    const mapOptions = {
-      center: initialCenter,
-      level: 3 // Kakao map zoom level (lower is zoomed-in, 3 is standard detailed alley grid view)
-    };
-
-    const map = new window.kakao.maps.Map(mapContainerRef.current, mapOptions);
-    kakaoMapRef.current = map;
-
-    return () => {
-      // Clean up map reference on unmount
-      kakaoMapRef.current = null;
-    };
-  }, []);
-
-  // Sync user location custom overlay
-  useEffect(() => {
-    if (!kakaoMapRef.current || typeof window === 'undefined' || !window.kakao || !window.kakao.maps) return;
-
-    if (userLocation && userLocation[0] && userLocation[1]) {
-      const latlng = new window.kakao.maps.LatLng(userLocation[0], userLocation[1]);
-
-      if (userOverlayRef.current) {
-        userOverlayRef.current.setPosition(latlng);
-      } else {
-        // Create custom HTML element matching globals.css rose-red bouncing style
-        const el = document.createElement('div');
-        el.className = 'user-location-marker';
-        el.innerHTML = '<div class="user-location-core"></div>';
-
-        userOverlayRef.current = new window.kakao.maps.CustomOverlay({
-          position: latlng,
-          content: el,
-          map: kakaoMapRef.current,
-          yAnchor: 0.5
-        });
-      }
-    }
-  }, [userLocation]);
-
-  // Handle dynamic map camera panning (panTo)
-  useEffect(() => {
-    if (!kakaoMapRef.current || typeof window === 'undefined' || !window.kakao || !window.kakao.maps) return;
-
-    if (selectedRestaurant) {
-      const latlng = new window.kakao.maps.LatLng(selectedRestaurant.latitude, selectedRestaurant.longitude);
-      kakaoMapRef.current.panTo(latlng);
-    } else if (userLocation && userLocation[0] && userLocation[1]) {
-      // Fallback panning to user location if focused card is closed
-      const latlng = new window.kakao.maps.LatLng(userLocation[0], userLocation[1]);
-      kakaoMapRef.current.panTo(latlng);
-    }
-  }, [selectedRestaurant, userLocation]);
-
-  // Sync restaurant overlays dynamically on dataset updates/filtering
-  useEffect(() => {
-    if (!kakaoMapRef.current || typeof window === 'undefined' || !window.kakao || !window.kakao.maps) return;
-
-    // Clear previous overlays from map
     overlaysRef.current.forEach((overlay) => overlay.setMap(null));
     overlaysRef.current = [];
 
-    // Draw new overlays
     restaurants.forEach((restaurant) => {
-      const el = document.createElement('div');
+      const el = createMarkerElement(restaurant);
+      el.onclick = () => onSelectRestaurant(restaurant);
 
-      // Set custom markup matching globals.css animations
-      if (restaurant.type === 'time-sale') {
-        el.className = 'pulse-marker-container';
-        el.innerHTML = '<div class="pulse-ring"></div><div class="pulse-core"></div>';
-      } else if (restaurant.type === 'budget') {
-        el.className = 'budget-marker-container';
-        el.innerHTML = '<div class="budget-core"></div>';
-      } else {
-        el.className = 'regular-marker-container';
-        el.innerHTML = '<div class="regular-core"></div>';
-      }
+      overlaysRef.current.push(
+        new window.kakao.maps.CustomOverlay({
+          position: new window.kakao.maps.LatLng(restaurant.latitude, restaurant.longitude),
+          content: el,
+          map,
+          yAnchor: 0.5
+        })
+      );
+    });
+  }, [restaurants, onSelectRestaurant]);
 
-      // Bind click handler dynamically to DOM element
-      el.onclick = () => {
-        onSelectRestaurant(restaurant);
-      };
+  // Initialize the Kakao Map instance on mount.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.kakao?.maps) return;
 
-      const overlay = new window.kakao.maps.CustomOverlay({
-        position: new window.kakao.maps.LatLng(restaurant.latitude, restaurant.longitude),
-        content: el,
-        map: kakaoMapRef.current,
-        yAnchor: 0.5
+    let cancelled = false;
+
+    window.kakao.maps.load(() => {
+      if (cancelled || !mapContainerRef.current) return;
+
+      const [lat, lng] = userLocation ?? SHINCHON_STATION_EXIT_3;
+
+      kakaoMapRef.current = new window.kakao.maps.Map(mapContainerRef.current, {
+        center: new window.kakao.maps.LatLng(lat, lng),
+        level: 3 // Detailed alley grid view
       });
 
-      overlaysRef.current.push(overlay);
+      setMapReady(true);
     });
-  }, [restaurants]);
+
+    return () => {
+      cancelled = true;
+      overlaysRef.current.forEach((overlay) => overlay.setMap(null));
+      overlaysRef.current = [];
+      userOverlayRef.current?.setMap(null);
+      userOverlayRef.current = null;
+      kakaoMapRef.current = null;
+    };
+    // userLocation is read only to pick the initial center; later values pan the camera
+    // through the effect below instead of rebuilding the map.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Draw restaurant overlays, and redraw whenever the filtered set changes.
+  useEffect(() => {
+    if (!mapReady) return;
+    syncOverlays();
+  }, [mapReady, syncOverlays]);
+
+  // Keep the user's GPS overlay in sync.
+  useEffect(() => {
+    if (!mapReady || !userLocation?.[0] || !userLocation?.[1]) return;
+
+    const latlng = new window.kakao.maps.LatLng(userLocation[0], userLocation[1]);
+
+    if (userOverlayRef.current) {
+      userOverlayRef.current.setPosition(latlng);
+      return;
+    }
+
+    const el = document.createElement('div');
+    el.className = 'user-location-marker';
+    el.innerHTML = '<div class="user-location-core"></div>';
+
+    userOverlayRef.current = new window.kakao.maps.CustomOverlay({
+      position: latlng,
+      content: el,
+      map: kakaoMapRef.current,
+      yAnchor: 0.5
+    });
+  }, [mapReady, userLocation]);
+
+  // Pan the camera to the selected restaurant, else follow the user.
+  useEffect(() => {
+    if (!mapReady) return;
+
+    const target = selectedRestaurant
+      ? [selectedRestaurant.latitude, selectedRestaurant.longitude]
+      : userLocation?.[0] && userLocation?.[1]
+        ? userLocation
+        : null;
+
+    if (!target) return;
+    kakaoMapRef.current.panTo(new window.kakao.maps.LatLng(target[0], target[1]));
+  }, [mapReady, selectedRestaurant, userLocation]);
 
   return (
-    <div 
-      ref={mapContainerRef} 
+    <div
+      ref={mapContainerRef}
       className="w-full h-screen relative bg-[#f4f5f6]"
       style={{ width: '100%', height: '100vh' }}
     />

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Script from 'next/script';
 import Map from './components/Map';
+import { KAKAO_SDK_URL } from '@/app/lib/kakao';
 
 const FILTERS = ["🔥전체", "🍻단체 뒤풀이", "👩❤️👨조용한 데이트", "🎧혼밥/가성비", "☔비오는 날", "💸가성비(만원이하)"];
 
@@ -24,6 +25,7 @@ export default function Page() {
   // Kakao Maps Script loaded state
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapLoadError, setMapLoadError] = useState(false);
+  const [mapDiagnosis, setMapDiagnosis] = useState(null);
   const [originUrl, setOriginUrl] = useState('');
 
   // Sync script load state if Kakao is already in window
@@ -37,6 +39,17 @@ export default function Page() {
       }
     }
   }, []);
+
+  // The script tag's error event carries no detail, and dapi.kakao.com sends no CORS
+  // headers, so ask our own server to replay the request and report what Kakao said.
+  const diagnoseMapFailure = async () => {
+    try {
+      const res = await fetch(`/api/kakao-health?origin=${encodeURIComponent(window.location.origin)}`);
+      if (res.ok) setMapDiagnosis(await res.json());
+    } catch (err) {
+      console.error('Kakao health check failed:', err);
+    }
+  };
 
   // Request HTML5 Geolocation access on mount
   useEffect(() => {
@@ -77,11 +90,14 @@ export default function Page() {
     fetchRestaurants(isRainy);
   }, [isRainy]);
 
-  // Client-side category filtering
-  const filteredRestaurants = restaurants.filter((r) => {
-    if (selectedFilter === '🔥전체') return true;
-    return r.situation === selectedFilter;
-  });
+  // Client-side category filtering. Memoized so the array identity is stable across
+  // unrelated re-renders (toast, redirect spinner) — Map rebuilds every overlay when it changes.
+  const filteredRestaurants = useMemo(() => {
+    return restaurants.filter((r) => {
+      if (selectedFilter === '🔥전체') return true;
+      return r.situation === selectedFilter;
+    });
+  }, [restaurants, selectedFilter]);
 
   const handleWeatherToggle = (newRainState) => {
     setIsRainy(newRainState);
@@ -178,22 +194,41 @@ export default function Page() {
     }
   };
 
-  // Get Kakao App Key securely from env variables, with your live key as the default fallback
-  const kakaoAppKey = process.env.NEXT_PUBLIC_KAKAO_APP_KEY || '3a6b39fc070eea44f186cd9fd7306476';
-
   if (mapLoadError) {
+    const isDomainMismatch = mapDiagnosis?.errorType === 'AccessDeniedError';
+
     return (
       <div className="w-full h-screen bg-[#f4f5f6] flex flex-col items-center justify-center text-[#12141a] p-6 text-center gap-3">
         <div className="text-3xl animate-bounce">❌</div>
-        <h2 className="text-lg font-black text-[#ff4d4f]">카카오 지도 호출 오류</h2>
+        <h2 className="text-lg font-black text-[#ff4d4f]">
+          {isDomainMismatch ? '카카오 앱 키에 이 도메인이 등록되지 않았습니다' : '카카오 지도 호출 오류'}
+        </h2>
         <p className="text-xs text-[#5c6370] max-w-sm leading-relaxed font-semibold">
           카카오 지도 서버(dapi.kakao.com)로부터 지도를 다운로드받는 데 실패했습니다.
         </p>
+
         <div className="bg-red-500/10 border border-red-500/20 px-5 py-4 rounded-3xl max-w-md mt-2 shadow-sm text-left">
           <p className="text-xs font-black text-red-600">📍 현재 사이트 주소: {originUrl}</p>
           <p className="text-[11px] text-red-500/90 mt-2 leading-relaxed">
-            카카오 디벨로퍼스 ➔ 내 애플리케이션 ➔ 플랫폼 ➔ <strong>Web 플랫폼 등록</strong> 항목에 위 주소가 글자 하나 틀리지 않고 똑같이 등록되어 있는지 확인해 주세요! (오타나 공백, 대소문자 확인 필요)
+            카카오 디벨로퍼스 ➔ 내 애플리케이션 ➔ 플랫폼 ➔ <strong>Web 사이트 도메인</strong>에 위 주소를 글자 하나 틀리지 않고 똑같이 등록해 주세요. (프로토콜, 포트, 대소문자까지 일치해야 합니다)
           </p>
+
+          {mapDiagnosis && (
+            <div className="mt-3 pt-3 border-t border-red-500/20">
+              <p className="text-[10px] font-black text-red-600 uppercase tracking-wider">카카오 서버 응답</p>
+              <p className="text-[11px] text-red-500/90 mt-1 font-mono break-all">
+                HTTP {mapDiagnosis.status}
+                {mapDiagnosis.errorType ? ` · ${mapDiagnosis.errorType}` : ''}
+              </p>
+              <p className="text-[11px] text-red-500/90 mt-1 leading-relaxed break-all">{mapDiagnosis.message}</p>
+              {mapDiagnosis.appKeyPreview && (
+                <p className="text-[10px] text-red-500/70 mt-2">
+                  사용 중인 키: {mapDiagnosis.appKeyPreview}{' '}
+                  ({mapDiagnosis.usingEnvKey ? 'NEXT_PUBLIC_KAKAO_APP_KEY' : '코드 내 기본값'})
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -202,10 +237,12 @@ export default function Page() {
   return (
     <main className="w-full h-screen relative bg-[#f4f5f6] select-none">
       
-      {/* Load Kakao Map Script dynamically with autoload=false */}
-      <Script 
-        src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoAppKey}&autoload=false`}
-        strategy="beforeInteractive"
+      {/* Load Kakao Map Script dynamically with autoload=false.
+          Must not be "beforeInteractive": in the App Router that strategy serializes
+          the script through self.__next_s and drops onLoad/onError entirely. */}
+      <Script
+        src={KAKAO_SDK_URL}
+        strategy="afterInteractive"
         onLoad={() => {
           if (window.kakao && window.kakao.maps) {
             window.kakao.maps.load(() => {
@@ -216,6 +253,7 @@ export default function Page() {
         onError={(e) => {
           console.error("Kakao Maps script failed to load:", e);
           setMapLoadError(true);
+          diagnoseMapFailure();
         }}
       />
 
